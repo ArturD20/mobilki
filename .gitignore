@@ -659,3 +659,7 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/firebase,visualstudiocode,vs,dotenv,macos,flutter,java,intellij
+
+app/lib/core/firebase_options.dart
+app/android/app/google-services.json
+app/ios/Runner/GoogleService-Info.plist
