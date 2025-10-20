@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'widgets/my_sets_section.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -14,32 +15,43 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final u = FirebaseAuth.instance.currentUser;
-
     if (u == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
         }
       });
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final who = u.email?.trim().isNotEmpty == true ? u.email! : u.uid;
+    final name = (u.displayName?.trim().isNotEmpty == true)
+        ? u.displayName!.trim()
+        : (u.email?.trim().isNotEmpty == true ? u.email!.trim() : 'Uczeń');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hello $who'),
+        title: Text('Cześć, $name'),
         actions: [
           IconButton(
+            tooltip: 'Wyloguj',
             onPressed: () => _signOut(context),
             icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
           ),
         ],
       ),
-      body: const Center(child: Text('Logged in')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).pushNamed('/createSet'),
+        icon: const Icon(Icons.add),
+        label: const Text('Dodaj zestaw'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: const [
+          Text('Moje zestawy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          SizedBox(height: 12),
+          MySetsSection(),
+        ],
+      ),
     );
   }
 }
