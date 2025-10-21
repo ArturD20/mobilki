@@ -44,7 +44,10 @@ class MySetsSection extends StatelessWidget {
               title: title,
               subtitle: '$cards fiszek',
               onTap: () {
-                // Navigator.of(context).pushNamed('/set', arguments: {'id': docs[i].id});
+                Navigator.of(context).pushNamed(
+                  '/studySet',
+                  arguments: {'setId': docs[i].id, 'title': title},
+                );
               },
             );
           },
