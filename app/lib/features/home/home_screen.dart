@@ -63,6 +63,6 @@ class HomeScreen extends StatelessWidget {
           const MySetsSection(),
         ],
       ),
-    );
+    ); 
   }
 }
