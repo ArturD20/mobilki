@@ -46,10 +46,21 @@ class HomeScreen extends StatelessWidget {
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        children: const [
-          Text('Moje zestawy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-          SizedBox(height: 12),
-          MySetsSection(),
+        children: [
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pushNamed('/languageSelection');
+            },
+            icon: const Icon(Icons.language),
+            label: const Text('Wybór języka'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text('Rozpoczęte zestawy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          const MySetsSection(),
         ],
       ),
     );
