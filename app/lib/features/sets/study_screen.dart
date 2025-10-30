@@ -146,7 +146,6 @@ class _StudyScreenState extends State<StudyScreen> {
   }
 }
 
-/// 🔹 Pojedynczy „licznik” bez klikalności
 class _CounterDisplay extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -175,7 +174,6 @@ class _CounterDisplay extends StatelessWidget {
   }
 }
 
-/// 🔸 Karta z pełną animacją 3D (flip) + swipe
 class Flashcard extends StatefulWidget {
   final String frontText;
   final String backText;

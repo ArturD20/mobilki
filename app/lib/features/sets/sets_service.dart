@@ -36,23 +36,19 @@ class SetsService {
         .snapshots();
   }
 
-  // --- DODAJ TĘ NOWĄ METODĘ ---
   static Stream<QuerySnapshot<Map<String, dynamic>>> setsByLanguageStream(String language) {
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
-      // Jeśli użytkownik nie jest zalogowany, zwróć pusty strumień
       return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
     }
     
-    // Zwróć strumień zestawów, które pasują do języka ORAZ do ID użytkownika
     return _sets()
         .where('ownerUid', isEqualTo: uid)
-        .where('language', isEqualTo: language) // <-- Kluczowe filtrowanie
+        .where('language', isEqualTo: language) 
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
-  // --- KONIEC NOWEJ METODY ---
-  
+
   static CollectionReference<Map<String, dynamic>> _cardsCol(String setId) =>
       _sets().doc(setId).collection('cards');
 

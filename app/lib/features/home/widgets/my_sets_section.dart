@@ -40,9 +40,11 @@ class MySetsSection extends StatelessWidget {
             final d = docs[i].data();
             final title = (d['title'] as String?) ?? '(bez nazwy)';
             final cards = (d['cards'] as int?) ?? 0;
+            final language = (d['language'] as String?) ?? '';
             return _SetTile(
               title: title,
               subtitle: '$cards fiszek',
+              language: language, 
               onTap: () {
                 Navigator.of(context).pushNamed(
                   '/studySet',
@@ -60,8 +62,33 @@ class MySetsSection extends StatelessWidget {
 class _SetTile extends StatelessWidget {
   final String title;
   final String subtitle;
+  final String language;
   final VoidCallback? onTap;
-  const _SetTile({required this.title, required this.subtitle, this.onTap});
+  const _SetTile({
+    required this.title,
+    required this.subtitle,
+    required this.language,
+    this.onTap,
+  });
+
+  String _getFlag(String lang) {
+    switch (lang) {
+      case 'Angielski':
+        return '🇬🇧';
+      case 'Niemiecki':
+        return '🇩🇪';
+      case 'Hiszpański':
+        return '🇪🇸';
+      case 'Włoski':
+        return '🇮🇹';
+      case 'Francuski':
+        return '🇫🇷';
+      case 'Japoński':
+        return '🇯🇵';
+      default:
+        return '🏳️';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +98,7 @@ class _SetTile extends StatelessWidget {
       tileColor: cs.surfaceVariant.withOpacity(0.25),
       title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(subtitle),
-      leading: const Icon(Icons.folder_outlined),
+      leading: Text(_getFlag(language), style: const TextStyle(fontSize: 32)),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );
