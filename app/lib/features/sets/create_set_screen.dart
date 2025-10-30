@@ -12,16 +12,15 @@ class _CreateSetScreenState extends State<CreateSetScreen> {
   bool _saving = false;
 
   final Map<String, String> _languages = {
-    'Angielski': '🇬🇧',
-    'Niemiecki': '🇩🇪',
+    'Angielski': '🇬🇧', 
+    'Niemiecki': '🇩🇪', 
     'Hiszpański': '🇪🇸',
     'Włoski': '🇮🇹',
     'Francuski': '🇫🇷',
-    'Japoński': '🇯🇵',
+    'Japoński': '🇯🇵', 
   };
 
   late String _selectedLanguage;
-
   @override
   void initState() {
     super.initState();
