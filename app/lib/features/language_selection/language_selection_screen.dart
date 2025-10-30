@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../sets/language_sets_screen.dart';
 
 class LanguageSelectionScreen extends StatelessWidget {
   const LanguageSelectionScreen({super.key});
@@ -96,15 +97,10 @@ class LanguageSelectionScreen extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          // TODO: Nawigacja do zestawów w danym języku
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Wybrano: $language'),
-              duration: const Duration(seconds: 2),
-            ),
+          Navigator.of(context).pushNamed(
+            LanguageSetsScreen.routeName,
+            arguments: language,
           );
-          // Możesz tutaj dodać nawigację, np.:
-          // Navigator.of(context).pushNamed('/sets', arguments: language);
         },
         borderRadius: BorderRadius.circular(16),
         child: SingleChildScrollView(

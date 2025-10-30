@@ -8,11 +8,15 @@ class SetsService {
   static CollectionReference<Map<String, dynamic>> _sets() =>
       _firestore.collection('sets');
 
-  static Future<String> addSet({required String title}) async {
+  static Future<String> addSet({
+    required String title,
+    required String language,
+  }) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw StateError('Nie zalogowano');
     final doc = await _sets().add({
       'title': title.trim(),
+      'language': language,
       'ownerUid': uid,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -31,6 +35,23 @@ class SetsService {
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
+
+  // --- DODAJ TĘ NOWĄ METODĘ ---
+  static Stream<QuerySnapshot<Map<String, dynamic>>> setsByLanguageStream(String language) {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) {
+      // Jeśli użytkownik nie jest zalogowany, zwróć pusty strumień
+      return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
+    }
+    
+    // Zwróć strumień zestawów, które pasują do języka ORAZ do ID użytkownika
+    return _sets()
+        .where('ownerUid', isEqualTo: uid)
+        .where('language', isEqualTo: language) // <-- Kluczowe filtrowanie
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+  // --- KONIEC NOWEJ METODY ---
   
   static CollectionReference<Map<String, dynamic>> _cardsCol(String setId) =>
       _sets().doc(setId).collection('cards');
