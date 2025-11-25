@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../core/env.dart';
 
 class SetsService {
   static final _firestore = FirebaseFirestore.instance;
@@ -79,5 +82,98 @@ class SetsService {
 
   static Stream<QuerySnapshot<Map<String, dynamic>>> cardsStream(String setId) {
     return _cardsCol(setId).orderBy('createdAt', descending: true).snapshots();
+  }
+
+  static Future<void> generateCardsViaLLM({
+    required String setId,
+    required int count,
+    String? topic,
+  }) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw StateError('Nie zalogowano');
+    if (count <= 0 || count > 100) throw ArgumentError.value(count, 'count', 'Must be 1..100');
+
+    final setSnapshot = await _sets().doc(setId).get();
+    final setData = setSnapshot.data() ?? <String, dynamic>{};
+    final language = (setData['language'] as String?) ?? 'English';
+
+    final apiKey = Env.openaiApiKey;
+    if (apiKey.startsWith('PUT_')) {
+      throw StateError('Ustaw Env.openaiApiKey w lib/core/env.dart');
+    }
+
+    final prompt = '''
+Generate $count concise flashcards for language: $language
+Topic: $topic
+Return a valid JSON array ONLY, where each item is an object:
+{"front": "<question/word>", "back": "<answer/translation>"}
+Do not include any extra text.
+''';
+
+    final resp = await http.post(
+      Uri.parse('https://api.openai.com/v1/chat/completions'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $apiKey',
+      },
+      body: jsonEncode({
+        'model': 'gpt-3.5-turbo',
+        'messages': [
+          {'role': 'system', 'content': 'You are a helpful assistant that outputs JSON.'},
+          {'role': 'user', 'content': prompt},
+        ],
+        'temperature': 0.7,
+        'max_tokens': 1500,
+      }),
+    );
+
+    if (resp.statusCode != 200) {
+      throw StateError('LLM error: ${resp.statusCode} ${utf8.decode(resp.bodyBytes)}');
+    }
+
+    // Bezpieczne dekodowanie w UTF-8
+    final rawBody = utf8.decode(resp.bodyBytes);
+    final body = jsonDecode(rawBody) as Map<String, dynamic>;
+    final content = (body['choices']?[0]?['message']?['content']) as String?;
+    if (content == null) throw StateError('Empty LLM response');
+
+    // Spróbuj sparsować odpowiedź jako JSON (również dekodując ewentualne znaki)
+    late List<dynamic> cards;
+    try {
+      cards = jsonDecode(content) as List<dynamic>;
+    } catch (e) {
+      final start = content.indexOf('[');
+      final end = content.lastIndexOf(']');
+      if (start == -1 || end == -1 || end <= start) throw StateError('Niepoprawny JSON od LLM');
+      final sub = content.substring(start, end + 1);
+      cards = jsonDecode(sub) as List<dynamic>;
+    }
+
+    if (cards.isEmpty) return;
+
+    final batch = _firestore.batch();
+    var added = 0;
+    for (final c in cards) {
+      if (c is Map) {
+        final front = (c['front'] ?? '').toString();
+        final back = (c['back'] ?? '').toString();
+        final docRef = _cardsCol(setId).doc();
+        batch.set(docRef, {
+          'front': front,
+          'back': back,
+          'ownerUid': uid,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        added++;
+      }
+    }
+
+    if (added > 0) {
+      batch.update(_sets().doc(setId), {
+        'cards': FieldValue.increment(added),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
+    }
   }
 }
