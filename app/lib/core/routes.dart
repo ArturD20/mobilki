@@ -8,6 +8,7 @@ import '../features/sets/study_screen.dart';
 import '../features/sets/study_summary_screen.dart';
 import '../features/language_selection/language_selection_screen.dart';
 import '../features/sets/language_sets_screen.dart';
+import '../features/sets/leitner_sets_screen.dart';
 
 Route<dynamic> onGenerateRoute(RouteSettings s) {
   switch (s.name) {
@@ -19,6 +20,8 @@ Route<dynamic> onGenerateRoute(RouteSettings s) {
       return MaterialPageRoute(builder: (_) => const CreateSetScreen());
     case '/languageSelection':
       return MaterialPageRoute(builder: (_) => const LanguageSelectionScreen());
+    case '/leitnerSets':
+      return MaterialPageRoute(builder: (_) => const LeitnerSetsScreen());
 
     case LanguageSetsScreen.routeName:
       return MaterialPageRoute(

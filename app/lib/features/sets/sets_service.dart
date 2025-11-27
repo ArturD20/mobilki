@@ -84,6 +84,19 @@ class SetsService {
     return _cardsCol(setId).orderBy('createdAt', descending: true).snapshots();
   }
 
+  static Future<void> updateCardLeitnerState({
+    required String setId,
+    required String cardId,
+    required int box,
+    required DateTime nextReviewAt,
+  }) async {
+    await _cardsCol(setId).doc(cardId).update({
+      'leitnerBox': box,
+      'nextReviewAt': Timestamp.fromDate(nextReviewAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   static Future<void> generateCardsViaLLM({
     required String setId,
     required int count,
