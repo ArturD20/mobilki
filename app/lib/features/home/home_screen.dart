@@ -57,6 +57,17 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pushNamed('/leitnerSets');
+            },
+            icon: const Icon(Icons.school),
+            label: const Text('Ucz się systemem Leitnera'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
           const SizedBox(height: 24),
           const Text('Rozpoczęte zestawy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
