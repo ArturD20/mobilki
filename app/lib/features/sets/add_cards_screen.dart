@@ -48,7 +48,6 @@ class _AddCardsScreenState extends State<AddCardsScreen> {
     }
   }
 
-  // dialog generowania fiszek (ilość + temat obok siebie)
   Future<void> _showGenerateDialog() async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,

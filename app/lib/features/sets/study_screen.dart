@@ -4,10 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'sets_service.dart';
 
 class StudyScreen extends StatefulWidget {
-  final String setId;
+  final String? setId; // Teraz opcjonalne
   final String? setTitle;
+  final String? fromGlobalSetId; // Opcjonalne ID zestawu globalnego (dla wirtualnych kopii)
   final List<String>? onlyIds; // if provided, limit study to these IDs
-  const StudyScreen({super.key, required this.setId, this.setTitle, this.onlyIds});
+  const StudyScreen({super.key, this.setId, this.setTitle, this.fromGlobalSetId, this.onlyIds});
 
   @override
   State<StudyScreen> createState() => _StudyScreenState();
@@ -19,13 +20,121 @@ class _StudyScreenState extends State<StudyScreen> {
   int correctCount = 0;
   int wrongCount = 0;
   final List<String> _wrongIds = [];
+  bool _isLoading = true;
+  String? _resolvedGlobalSetId; // Przechowuje ID globalne, jeśli zestaw jest wirtualny
+  String? _currentSetId; // Przechowuje aktualne ID zestawu użytkownika (może być null na początku)
 
-  void _finish() {
+  @override
+  void initState() {
+    super.initState();
+    _currentSetId = widget.setId;
+    _checkIfVirtualAndLoadProgress();
+  }
+
+  Future<void> _checkIfVirtualAndLoadProgress() async {
+    // 1. Jeśli mamy globalSetId, ale nie mamy setId, sprawdźmy czy zestaw już istnieje
+    if (_currentSetId == null && widget.fromGlobalSetId != null) {
+      _resolvedGlobalSetId = widget.fromGlobalSetId;
+      try {
+        final existingId = await SetsService.findSetIdByGlobalId(widget.fromGlobalSetId!);
+        if (existingId != null) {
+          _currentSetId = existingId;
+        }
+      } catch (e) {
+        debugPrint('Błąd szukania istniejącego zestawu: $e');
+      }
+    } 
+    // 2. Jeśli mamy setId, sprawdźmy czy jest wirtualny
+    else if (_currentSetId != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('sets').doc(_currentSetId).get();
+        if (doc.exists) {
+          final data = doc.data();
+          if (data != null && data['isVirtual'] == true) {
+            _resolvedGlobalSetId = data['fromGlobalSetId'];
+          }
+        }
+      } catch (e) {
+        debugPrint('Błąd sprawdzania wirtualności zestawu: $e');
+      }
+    }
+
+    // 3. Załaduj postęp (tylko jeśli mamy setId)
+    if (_currentSetId != null) {
+      await _loadProgress();
+    } else {
+      // Jeśli nie mamy setId, to znaczy że to nowa gra z globalnego zestawu
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadProgress() async {
+    if (widget.onlyIds != null || _currentSetId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final progress = await SetsService.getSessionProgress(_currentSetId!);
+    if (progress != null && mounted) {
+      setState(() {
+        _index = progress['index'] as int? ?? 0;
+        correctCount = progress['correct'] as int? ?? 0;
+        wrongCount = progress['wrong'] as int? ?? 0;
+        final wIds = progress['wrongIds'] as List?;
+        if (wIds != null) {
+          _wrongIds.addAll(wIds.map((e) => e.toString()));
+        }
+      });
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<String> _ensureSetId() async {
+    if (_currentSetId != null) return _currentSetId!;
+    
+    if (_resolvedGlobalSetId == null) {
+      throw StateError('Brak setId i brak globalSetId - nie można zapisać postępu');
+    }
+
+    // Tworzymy wirtualną kopię zestawu (tylko nagłówek)
+    final newId = await SetsService.copyGlobalSet(_resolvedGlobalSetId!);
+    setState(() {
+      _currentSetId = newId;
+    });
+    return newId;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _finish() async {
+    if (!mounted) return;
+    
+    // Jeśli użytkownik nic nie zrobił (nie ma setId), to po prostu wychodzimy
+    if (_currentSetId == null) {
+       Navigator.of(context).pop();
+       return;
+    }
+
+    final setId = await _ensureSetId();
+    
+    // Czyścimy postęp sesji, bo zestaw został ukończony
+    await SetsService.clearSessionProgress(setId);
+
+    // Zapisujemy wynik ostatniej sesji
+    await SetsService.updateSetLatestResult(
+      setId: setId,
+      correct: correctCount,
+      wrong: wrongCount,
+    );
+
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(
       '/studySummary',
       arguments: {
-        'setId': widget.setId,
+        'setId': setId,
         'title': widget.setTitle,
         'total': _cards.length,
         'correct': correctCount,
@@ -41,14 +150,39 @@ class _StudyScreenState extends State<StudyScreen> {
       return;
     }
     setState(() => _index = _index + 1);
+    _saveProgress();
   }
 
-  void _onCorrect() {
+  Future<void> _saveProgress() async {
+    if (widget.onlyIds == null) {
+      // Zapisujemy postęp w tle, tworząc zestaw jeśli trzeba
+      try {
+        final setId = await _ensureSetId();
+        await SetsService.updateSessionProgress(
+          setId: setId,
+          index: _index,
+          correct: correctCount,
+          wrong: wrongCount,
+          wrongIds: _wrongIds,
+        );
+      } catch (e) {
+        debugPrint('Błąd zapisu postępu: $e');
+      }
+    }
+  }
+
+  Future<void> _onCorrect() async {
     setState(() => correctCount++);
+    try {
+      final setId = await _ensureSetId();
+      await SetsService.updateSetStatistics(setId: setId, correct: 1, wrong: 0);
+    } catch (e) {
+      debugPrint('Błąd aktualizacji statystyk: $e');
+    }
     _nextCard();
   }
 
-  void _onWrong() {
+  Future<void> _onWrong() async {
     setState(() {
       wrongCount++;
       final cid = (_cards.isNotEmpty && _index < _cards.length) ? (_cards[_index]['id'] as String?) : null;
@@ -56,6 +190,12 @@ class _StudyScreenState extends State<StudyScreen> {
         _wrongIds.add(cid);
       }
     });
+    try {
+      final setId = await _ensureSetId();
+      await SetsService.updateSetStatistics(setId: setId, correct: 0, wrong: 1);
+    } catch (e) {
+      debugPrint('Błąd aktualizacji statystyk: $e');
+    }
     _nextCard();
   }
 
@@ -66,8 +206,12 @@ class _StudyScreenState extends State<StudyScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text('Gra: $title')),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: SetsService.cardsStream(widget.setId),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _resolvedGlobalSetId != null 
+            ? SetsService.globalCardsStream(_resolvedGlobalSetId!) 
+            : (_currentSetId != null ? SetsService.cardsStream(_currentSetId!) : const Stream.empty()),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -89,10 +233,14 @@ class _StudyScreenState extends State<StudyScreen> {
             built = built.where((m) => allow.contains(m['id'] as String)).toList();
           }
           _cards = built;
+          
+          // Walidacja indeksu po załadowaniu kart
           if (_cards.isEmpty) {
             _index = 0;
           } else if (_index >= _cards.length) {
-            _index = _cards.length - 1;
+            // Jeśli zapisany indeks jest poza zakresem (np. usunięto karty), zacznij od końca lub zresetuj
+            _index = _cards.length - 1; 
+            // Opcjonalnie: można zresetować postęp jeśli dane są niespójne
           }
 
           if (_cards.isEmpty) {

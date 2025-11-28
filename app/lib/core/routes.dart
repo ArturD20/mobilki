@@ -9,6 +9,7 @@ import '../features/sets/study_summary_screen.dart';
 import '../features/language_selection/language_selection_screen.dart';
 import '../features/sets/language_sets_screen.dart';
 import '../features/sets/leitner_sets_screen.dart';
+import '../features/statistics/statistics_screen.dart';
 
 Route<dynamic> onGenerateRoute(RouteSettings s) {
   switch (s.name) {
@@ -22,6 +23,8 @@ Route<dynamic> onGenerateRoute(RouteSettings s) {
       return MaterialPageRoute(builder: (_) => const LanguageSelectionScreen());
     case '/leitnerSets':
       return MaterialPageRoute(builder: (_) => const LeitnerSetsScreen());
+    case '/statistics':
+      return MaterialPageRoute(builder: (_) => const StatisticsScreen());
 
     case LanguageSetsScreen.routeName:
       return MaterialPageRoute(
@@ -79,19 +82,28 @@ Route<dynamic> onGenerateRoute(RouteSettings s) {
     case '/studySet':
       {
         final args = s.arguments;
-        if (args is Map && args['setId'] is String) {
-          return MaterialPageRoute(
-            builder: (_) => StudyScreen(
-              setId: args['setId'] as String,
-              setTitle: args['title'] as String?,
-            ),
-          );
+        if (args is Map) {
+          final setId = args['setId'] as String?;
+          final globalSetId = args['globalSetId'] as String?;
+          
+          if (setId != null || globalSetId != null) {
+            return MaterialPageRoute(
+              builder: (_) => StudyScreen(
+                setId: setId,
+                setTitle: args['title'] as String?,
+                fromGlobalSetId: globalSetId,
+                onlyIds: (args['onlyIds'] is List) 
+                    ? (args['onlyIds'] as List).map((e) => e.toString()).toList() 
+                    : null,
+              ),
+            );
+          }
         }
         return MaterialPageRoute(
           builder: (_) => const Scaffold(
             body: Center(
                 child:
-                    Text('Brak wymaganych argumentów dla /studySet (setId).')),
+                    Text('Brak wymaganych argumentów dla /studySet (setId lub globalSetId).')),
           ),
         );
       }

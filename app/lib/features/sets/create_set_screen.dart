@@ -46,14 +46,16 @@ class _CreateSetScreenState extends State<CreateSetScreen> {
         language: _selectedLanguage, 
       );
       if (!mounted) return;
+      setState(() => _saving = false); // Reset saving state before navigation
       Navigator.of(context).pushNamed('/editSet', arguments: {
         'setId': setId,
         'title': title,
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Błąd zapisu: $e')));
-    } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Błąd zapisu: $e')));
+      }
     }
   }
 

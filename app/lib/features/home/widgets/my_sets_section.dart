@@ -22,12 +22,37 @@ class MySetsSection extends StatelessWidget {
             child: Text('Błąd: ${snap.error}'),
           );
         }
-        final docs = snap.data?.docs ?? [];
+        final allDocs = snap.data?.docs ?? [];
+        
+        // Filtruj zestawy, które są "realnie rozpoczęte"
+        final docs = allDocs.where((doc) {
+          final data = doc.data();
+          final correct = (data['correctCount'] as int?) ?? 0;
+          final wrong = (data['wrongCount'] as int?) ?? 0;
+          final sessionProgress = data['sessionProgress'];
+          
+          // Jeśli ma jakiekolwiek statystyki LUB zapisaną sesję
+          return (correct > 0 || wrong > 0) || (sessionProgress != null);
+        }).toList();
+
         if (docs.isEmpty) {
-          return _EmptyState(
-            message: 'Nie masz jeszcze zestawów.',
-            action: () => Navigator.of(context).pushNamed('/createSet'),
-          );
+          // Jeśli po filtrowaniu lista jest pusta, ale użytkownik ma jakieś zestawy (np. tylko skopiowane globalne),
+          // to może wyświetlić inny komunikat?
+          // Ale user chciał "w rozpoczetych zestawach wyswietlaj tylko realnie rozpoczete".
+          // Więc jeśli nie ma rozpoczętych, to "Nie masz jeszcze rozpoczętych zestawów".
+          
+          // Jeśli w ogóle nie ma zestawów (allDocs.isEmpty), to standardowy komunikat.
+          if (allDocs.isEmpty) {
+             return _EmptyState(
+              message: 'Nie masz jeszcze zestawów.',
+              action: () => Navigator.of(context).pushNamed('/createSet'),
+            );
+          } else {
+             return _EmptyState(
+              message: 'Nie masz jeszcze rozpoczętych zestawów.',
+              action: () => Navigator.of(context).pushNamed('/languageSelection'), // Kieruj do wyboru języka/zestawów
+            );
+          }
         }
 
         return ListView.separated(
