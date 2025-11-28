@@ -503,4 +503,74 @@ Do not include any extra text.
       await batch.commit();
     }
   }
+
+  static Future<void> deleteSet(String setId) async {
+    // Usuwamy wszystkie karty z podkolekcji
+    final cardsSnapshot = await _cardsCol(setId).get();
+    final batch = _firestore.batch();
+    for (final doc in cardsSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    // Usuwamy sam zestaw
+    batch.delete(_sets().doc(setId));
+    await batch.commit();
+  }
+
+  static Future<void> updateSetTitle(String setId, String newTitle) async {
+    await _sets().doc(setId).update({
+      'title': newTitle.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> updateCard({
+    required String setId,
+    required String cardId,
+    required String front,
+    required String back,
+  }) async {
+    await _cardsCol(setId).doc(cardId).update({
+      'front': front.trim(),
+      'back': back.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> deleteCard(String setId, String cardId) async {
+    await _cardsCol(setId).doc(cardId).delete();
+    await _sets().doc(setId).update({
+      'cards': FieldValue.increment(-1),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> materializeSet(String setId) async {
+    final setDoc = await _sets().doc(setId).get();
+    if (!setDoc.exists) return;
+    final data = setDoc.data()!;
+    if (data['isVirtual'] != true || data['fromGlobalSetId'] == null) return;
+
+    final globalSetId = data['fromGlobalSetId'];
+    final globalCardsSnap = await _globalSets().doc(globalSetId).collection('cards').get();
+
+    final batch = _firestore.batch();
+    for (final gCard in globalCardsSnap.docs) {
+      final newCardRef = _cardsCol(setId).doc();
+      final gData = gCard.data();
+      batch.set(newCardRef, {
+        'front': gData['front'],
+        'back': gData['back'],
+        'ownerUid': data['ownerUid'],
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    batch.update(_sets().doc(setId), {
+      'isVirtual': false,
+      'fromGlobalSetId': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
 }

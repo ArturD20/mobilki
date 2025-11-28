@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../sets/sets_service.dart';
+import '../../sets/edit_set_screen.dart';
 
 class MySetsSection extends StatelessWidget {
   const MySetsSection({super.key});
@@ -74,6 +75,13 @@ class MySetsSection extends StatelessWidget {
                   arguments: {'setId': docs[i].id, 'title': title},
                 );
               },
+              onEdit: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => EditSetScreen(setId: docs[i].id, initialTitle: title),
+                  ),
+                );
+              },
             );
           },
         );
@@ -86,7 +94,8 @@ class _SetTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
-  const _SetTile({required this.title, required this.subtitle, this.onTap});
+  final VoidCallback? onEdit;
+  const _SetTile({required this.title, required this.subtitle, this.onTap, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +106,18 @@ class _SetTile extends StatelessWidget {
       title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(subtitle),
       leading: const Icon(Icons.folder_outlined),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (onEdit != null)
+            IconButton(
+              icon: const Icon(Icons.edit, size: 20),
+              onPressed: onEdit,
+              tooltip: 'Edytuj zestaw',
+            ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
       onTap: onTap,
     );
   }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'sets_service.dart';
+import 'edit_set_screen.dart';
 
 class LanguageSetsScreen extends StatelessWidget {
   static const routeName = '/language-sets';
@@ -87,6 +88,8 @@ class LanguageSetsScreen extends StatelessWidget {
                                 'title': title,
                               });
                             },
+                            onEdit: () => _editSet(context, doc.id, title),
+                            onDelete: () => _deleteSet(context, doc.id, title),
                           );
                         },
                       ),
@@ -118,6 +121,8 @@ class LanguageSetsScreen extends StatelessWidget {
                                 'title': title,
                               });
                             },
+                            onEdit: () => _editSet(context, doc.id, title),
+                            onDelete: () => _deleteSet(context, doc.id, title),
                           );
                         },
                       ),
@@ -227,18 +232,54 @@ class LanguageSetsScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _editSet(BuildContext context, String setId, String currentTitle) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EditSetScreen(setId: setId, initialTitle: currentTitle),
+      ),
+    );
+  }
+
+  void _deleteSet(BuildContext context, String setId, String title) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Usuń zestaw'),
+        content: Text('Czy na pewno chcesz usunąć zestaw "$title"?\nTej operacji nie można cofnąć.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Anuluj'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await SetsService.deleteSet(setId);
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Usuń'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SetTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
   final IconData icon;
 
   const _SetTile({
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.onEdit,
+    this.onDelete,
     this.icon = Icons.folder_outlined,
   });
 
@@ -255,7 +296,24 @@ class _SetTile extends StatelessWidget {
         leading: Icon(icon),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onEdit != null)
+              IconButton(
+                icon: const Icon(Icons.edit, size: 20),
+                onPressed: onEdit,
+                tooltip: 'Edytuj nazwę',
+              ),
+            if (onDelete != null)
+              IconButton(
+                icon: const Icon(Icons.delete, size: 20),
+                onPressed: onDelete,
+                tooltip: 'Usuń zestaw',
+              ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          ],
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
