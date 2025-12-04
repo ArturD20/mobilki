@@ -149,11 +149,49 @@ class _EditSetScreenState extends State<EditSetScreen> {
     }
   }
 
+  Future<void> _deleteSet() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Usuń zestaw'),
+        content: const Text('Czy na pewno chcesz usunąć cały zestaw? Ta operacja jest nieodwracalna.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Anuluj'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Usuń zestaw'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await SetsService.deleteSet(widget.setId);
+      if (mounted) {
+        Navigator.of(context).pop(); // Wróć do poprzedniego ekranu
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Zestaw został usunięty')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edycja zestawu'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            tooltip: 'Usuń cały zestaw',
+            onPressed: _deleteSet,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
