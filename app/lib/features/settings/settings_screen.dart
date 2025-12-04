@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -11,19 +12,40 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool notificationsEnabled = true;
   TimeOfDay notificationTime = const TimeOfDay(hour: 9, minute: 0);
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
+      final hour = prefs.getInt('notificationHour') ?? 9;
+      final minute = prefs.getInt('notificationMinute') ?? 0;
+      notificationTime = TimeOfDay(hour: hour, minute: minute);
+      _isLoading = false;
+    });
     _applyNotificationSettings();
   }
 
-  void _applyNotificationSettings() async {
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notificationsEnabled', notificationsEnabled);
+    await prefs.setInt('notificationHour', notificationTime.hour);
+    await prefs.setInt('notificationMinute', notificationTime.minute);
+  }
+
+  Future<void> _applyNotificationSettings() async {
     if (notificationsEnabled) {
       await NotificationService.scheduleDailyNotification(time: notificationTime);
     } else {
       await NotificationService.cancelAllNotifications();
     }
+    await _saveSettings();
   }
 
   void _pickTime() async {
@@ -33,12 +55,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (picked != null) {
       setState(() => notificationTime = picked);
-      _applyNotificationSettings();
+      await _applyNotificationSettings();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Ustawienia')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Ustawienia')),
       body: Padding(
