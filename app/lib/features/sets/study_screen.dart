@@ -233,9 +233,9 @@ class _FlashcardState extends State<Flashcard> with SingleTickerProviderStateMix
   }
 
   void _handleDragEnd(DragEndDetails details) {
-    if (_offset.dx > 100) {
+    if (_offset.dx > 120) {
       widget.onCorrect();
-    } else if (_offset.dx < -100) {
+    } else if (_offset.dx < -120) {
       widget.onWrong();
     }
     setState(() {
