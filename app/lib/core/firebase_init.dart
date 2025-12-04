@@ -11,8 +11,9 @@ Future<void> initFirebase() async {
   );
 
   if (kDebugMode && Env.useEmulators) {
-    await FirebaseAuth.instance.useAuthEmulator(Env.authHost, Env.authPort);
-    FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+    const host = '127.0.0.1'; 
+    await FirebaseAuth.instance.useAuthEmulator(host, Env.authPort);
+    FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
     FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false, sslEnabled: false);
   }
 }

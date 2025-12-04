@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'study_screen.dart';
 
-class StudySummaryScreen extends StatelessWidget {
+class StudySummaryScreen extends StatefulWidget {
   final String setId;
   final String? setTitle;
   final int totalCards;
@@ -20,9 +20,19 @@ class StudySummaryScreen extends StatelessWidget {
   });
 
   @override
+  State<StudySummaryScreen> createState() => _StudySummaryScreenState();
+}
+
+class _StudySummaryScreenState extends State<StudySummaryScreen> {
+  @override
+  void initState() {
+    super.initState(); 
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final title = setTitle ?? 'Zestaw';
+    final title = widget.setTitle ?? 'Zestaw';
     return Scaffold(
       appBar: AppBar(title: const Text('Podsumowanie')),
       body: Padding(
@@ -48,25 +58,25 @@ class StudySummaryScreen extends StatelessWidget {
                   const Text('Ukończono naukę'),
                   const SizedBox(height: 8),
                   Text(
-                    '$totalCards fiszek',
+                    '${widget.totalCards} fiszek',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  if (correct != null || wrong != null) ...[
+                  if (widget.correct != null || widget.wrong != null) ...[
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        if (correct != null)
+                        if (widget.correct != null)
                           Row(children: [
                             const Icon(Icons.check, color: Colors.green),
                             const SizedBox(width: 6),
-                            Text('Umiem: ${correct!}')
+                            Text('Umiem: ${widget.correct!}')
                           ]),
-                        if (wrong != null)
+                        if (widget.wrong != null)
                           Row(children: [
                             const Icon(Icons.close, color: Colors.red),
                             const SizedBox(width: 6),
-                            Text('Nie umiem: ${wrong!}')
+                            Text('Nie umiem: ${widget.wrong!}')
                           ]),
                       ],
                     ),
@@ -75,7 +85,7 @@ class StudySummaryScreen extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            if (wrongIds != null && wrongIds!.isNotEmpty) ...[
+            if (widget.wrongIds != null && widget.wrongIds!.isNotEmpty) ...[
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -83,9 +93,9 @@ class StudySummaryScreen extends StatelessWidget {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (_) => StudyScreen(
-                          setId: setId,
-                          setTitle: setTitle,
-                          onlyIds: wrongIds,
+                          setId: widget.setId,
+                          setTitle: widget.setTitle,
+                          onlyIds: widget.wrongIds,
                         ),
                       ),
                     );
@@ -102,7 +112,7 @@ class StudySummaryScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (_) => StudyScreen(setId: setId, setTitle: setTitle),
+                      builder: (_) => StudyScreen(setId: widget.setId, setTitle: widget.setTitle),
                     ),
                   );
                 },

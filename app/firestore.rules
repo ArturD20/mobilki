@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reguły dla użytkowników - każdy ma dostęp tylko do swoich danych
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reguły dla zestawów użytkownika
+    match /sets/{setId} {
+      allow read, write: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      
+      match /cards/{cardId} {
+        allow read, write: if request.auth != null; // Uproszczone, w produkcji warto sprawdzić ownerUid zestawu nadrzędnego
+      }
+    }
+    
+    // Reguły dla zestawów globalnych (publicznych)
+    match /global_sets/{document=**} {
+      // Każdy zalogowany może czytać
+      allow read: if request.auth != null;
+      // Tylko admin (lub w trybie dev każdy) może pisać
+      // Zmień na 'false' w produkcji, jeśli nie chcesz by userzy dodawali globalne zestawy
+      allow write: if request.auth != null; 
+    }
+  }
+}

@@ -1,8 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'sets_service.dart';
 import 'leitner_scheduler.dart';
-import 'study_screen.dart' show Flashcard; // reuse existing Flashcard widget
+import 'study_screen.dart' show Flashcard; 
 
 class LeitnerStudyScreen extends StatefulWidget {
   final String setId;
@@ -66,8 +65,8 @@ class _LeitnerStudyScreenState extends State<LeitnerStudyScreen> {
       appBar: AppBar(
         title: Text('Leitner: $title'),
       ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: SetsService.cardsStream(widget.setId),
+      body: StreamBuilder<List<LeitnerCardState>>(
+        stream: SetsService.leitnerCardsStream(widget.setId),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -75,11 +74,9 @@ class _LeitnerStudyScreenState extends State<LeitnerStudyScreen> {
           if (snap.hasError) {
             return Center(child: Text('Błąd: ${snap.error}'));
           }
-          final docs = snap.data?.docs ?? [];
-            final now = DateTime.now();
-            final allCards =
-              docs.map((d) => LeitnerCardState.fromDoc(d)).toList();
-            final dueCards = allCards
+          final allCards = snap.data ?? [];
+          final now = DateTime.now();
+          final dueCards = allCards
               .where((c) => LeitnerScheduler.isDue(c, now))
               .toList();
 
