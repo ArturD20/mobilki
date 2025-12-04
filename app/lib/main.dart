@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'core/firebase_init.dart';
 import 'core/routes.dart';
+import 'core/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initFirebase();
+  await NotificationService.init();
   runApp(const MyApp());
 }
 
